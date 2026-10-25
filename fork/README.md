@@ -13,22 +13,23 @@ with it.
 
 ## Branches
 
-| Branch             | What                                                                                |
-| ------------------ | ----------------------------------------------------------------------------------- |
-| `master`           | An exact mirror of upstream `master`. Never commit to it.                           |
-| `custom/main`      | `master` plus all custom changes. The VPS builds from this branch.                  |
-| `custom/<feature>` | One custom change each, made from `custom/main` and merged back with a pull request |
+There are only two branches:
 
-Pull requests from `custom/<feature>` go into `custom/main`, never into `master` and never to
-`actualbudget/actual`. GitHub suggests upstream as the target when you open a pull request from a
-fork, so check the base repository and branch before creating it.
+| Branch        | What                                                                                               |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| `master`      | An exact mirror of upstream `master`. Never commit to it.                                          |
+| `custom/main` | `master` plus **all** custom changes. The only branch with custom changes; the VPS builds from it. |
+
+Custom changes are committed straight to `custom/main`. No feature branches and no pull requests:
+when a change is done and checked, commit it on `custom/main` and push. Nothing ever goes to
+`actualbudget/actual`.
 
 ## Custom changes
 
-| Change                          | Files                                                                                                                                                                                             |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Make payment** button (PR #1) | `packages/desktop-client/src/components/accounts/`: `MakePaymentButton.tsx`, `MakePaymentForm.tsx`, `makePayment.ts`, `makePayment.test.ts` (new); `Header.tsx`, `Account.tsx` (a few lines each) |
-| Fork docs                       | `fork/` (new)                                                                                                                                                                                     |
+| Change                  | Files                                                                                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Make payment** button | `packages/desktop-client/src/components/accounts/`: `MakePaymentButton.tsx`, `MakePaymentForm.tsx`, `makePayment.ts`, `makePayment.test.ts` (new); `Header.tsx`, `Account.tsx` (a few lines each) |
+| Fork docs               | `fork/` (new)                                                                                                                                                                                     |
 
 **Make payment:** on an open account with a negative balance (a credit card or loan), the account
 toolbar shows **Make payment**. It opens a form prefilled with the amount owed, a source account
@@ -57,7 +58,7 @@ table above). Then update the VPS: [`vps.md`](vps.md), "Updating Actual".
 Releases sometimes upgrade Actual's data. Once the VPS runs a newer version, an older image can't
 read the data any more, so take the update only when you mean to.
 
-## Checks before merging a custom change
+## Checks before pushing a custom change
 
 From the repo root: `yarn typecheck`, `yarn lint` and `yarn test` (see [`AGENTS.md`](../AGENTS.md)).
-Commit messages and pull request titles start with `[AI]` when an AI agent wrote them.
+Commit messages start with `[AI]` when an AI agent wrote them.
