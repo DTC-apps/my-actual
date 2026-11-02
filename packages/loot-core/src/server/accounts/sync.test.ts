@@ -143,6 +143,48 @@ describe('Account sync', () => {
     );
   });
 
+  test('reconcile does not tag transactions that already exist', async () => {
+    const { id } = await prepareDatabase();
+
+    // Already in the budget, without notes
+    await db.insertTransaction({
+      id: 'manual',
+      account: id,
+      amount: -1000,
+      date: '2020-01-02',
+    });
+
+    const bankTransactions = [
+      {
+        date: '2020-01-02',
+        payee_name: 'Manual',
+        amount: -1000,
+        imported_id: 'bank-1',
+        notes: 'From bank',
+      },
+      {
+        date: '2020-01-03',
+        payee_name: 'New',
+        amount: -2000,
+        imported_id: 'bank-2',
+      },
+    ];
+
+    const first = await reconcileTransactions(id, bankTransactions);
+    expect(first.added).toHaveLength(1);
+
+    // The bank sends the same transactions again on the next sync
+    const second = await reconcileTransactions(id, bankTransactions);
+    expect(second.added).toHaveLength(0);
+
+    const transactions = await getAllTransactions();
+    expect(transactions).toHaveLength(2);
+    expect(transactions.find(t => t.id === 'manual').notes).toBe('From bank');
+    expect(transactions.find(t => t.amount === -2000).notes).toBe(
+      '#just-imported',
+    );
+  });
+
   test('reconcile creates payees correctly', async () => {
     const { id } = await prepareDatabase();
 
