@@ -168,7 +168,10 @@ describe('File import', () => {
     );
     expect(errorsWithoutNotes.length).toBe(0);
     const transactionsWithoutNotes = await getTransactions('one');
-    expect(transactionsWithoutNotes.every(t => t.notes === null)).toBe(true);
+    // Only the automatic "just imported" tag ends up in the notes
+    expect(
+      transactionsWithoutNotes.every(t => t.notes === '#just-imported'),
+    ).toBe(true);
   }, 45000);
 
   test('matches extensions correctly (case-insensitive, etc)', async () => {

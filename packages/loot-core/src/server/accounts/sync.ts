@@ -20,6 +20,7 @@ import {
 } from '#server/util/custom-sync-mapping';
 import * as monthUtils from '#shared/months';
 import { q } from '#shared/query';
+import { extractTagsFromText } from '#shared/tags';
 import {
   makeChild as makeChildTransaction,
   recalculateSplit,
@@ -636,6 +637,20 @@ export type ReconcileTransactionsResult = {
   }>;
 };
 
+// Every transaction newly created by an import (bank sync or file import)
+// gets this tag, so freshly imported transactions are easy to find and review.
+export const JUST_IMPORTED_TAG = 'just-imported';
+
+export function addJustImportedTag(notes: string | null | undefined): string {
+  const existing = notes?.trimEnd() ?? '';
+  if (extractTagsFromText(existing).includes(JUST_IMPORTED_TAG)) {
+    return existing;
+  }
+  return existing.trim()
+    ? `${existing} #${JUST_IMPORTED_TAG}`
+    : `#${JUST_IMPORTED_TAG}`;
+}
+
 export async function reconcileTransactions(
   acctId,
   transactions,
@@ -768,6 +783,7 @@ export async function reconcileTransactions(
         id: uuidv4(),
         category: trans.category || null,
         cleared: trans.cleared ?? defaultCleared,
+        notes: addJustImportedTag(newTrans.notes),
       };
 
       if (subtransactions && subtransactions.length > 0) {

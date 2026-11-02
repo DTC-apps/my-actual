@@ -114,7 +114,7 @@ test('import keeps one parent, matches its schedule and transfers only the formu
   expect(parent).toMatchObject({
     account: 'source',
     imported_id: imported.imported_id,
-    notes: imported.notes,
+    notes: `${imported.notes} #just-imported`,
     imported_payee: imported.imported_payee,
     amount: -3000,
     cleared: 1,
@@ -157,7 +157,7 @@ test('import keeps one parent, matches its schedule and transfers only the formu
   );
   expect(reimported.find(row => row.id === parent.id)).toMatchObject({
     imported_id: imported.imported_id,
-    notes: imported.notes,
+    notes: `${imported.notes} #just-imported`,
     schedule,
   });
   expect(

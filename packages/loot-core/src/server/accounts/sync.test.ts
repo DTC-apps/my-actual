@@ -15,6 +15,7 @@ import type { SyncedPrefs } from '#types/prefs';
 
 import { app as accountsApp } from './app';
 import {
+  addJustImportedTag,
   addTransactions,
   compareFuzzyMatchCandidates,
   reconcileTransactions,
@@ -82,7 +83,66 @@ async function getAllPayees() {
   return (await db.getPayees()).filter(p => p.transfer_acct == null);
 }
 
+describe('addJustImportedTag', () => {
+  test('tags empty notes', () => {
+    expect(addJustImportedTag(null)).toBe('#just-imported');
+    expect(addJustImportedTag(undefined)).toBe('#just-imported');
+    expect(addJustImportedTag('  ')).toBe('#just-imported');
+  });
+
+  test('appends the tag to existing notes', () => {
+    expect(addJustImportedTag('Groceries ')).toBe('Groceries #just-imported');
+  });
+
+  test('does not add the tag twice', () => {
+    expect(addJustImportedTag('Groceries #just-imported')).toBe(
+      'Groceries #just-imported',
+    );
+  });
+
+  test('ignores escaped or similar tags', () => {
+    expect(addJustImportedTag('##just-imported')).toBe(
+      '##just-imported #just-imported',
+    );
+    expect(addJustImportedTag('#just-imported-old')).toBe(
+      '#just-imported-old #just-imported',
+    );
+  });
+});
+
 describe('Account sync', () => {
+  test('reconcile tags only newly added transactions as just imported', async () => {
+    const { id } = await prepareDatabase();
+
+    await db.insertTransaction({
+      id: 'existing',
+      account: id,
+      amount: -1000,
+      date: '2020-01-02',
+      notes: 'Existing note',
+    });
+
+    const { added, updated } = await reconcileTransactions(id, [
+      { date: '2020-01-02', payee_name: 'Matched', amount: -1000 },
+      { date: '2020-01-03', payee_name: 'New', amount: -2000, notes: 'Hi' },
+      { date: '2020-01-04', payee_name: 'Empty', amount: -3000 },
+    ]);
+
+    expect(added).toHaveLength(2);
+    expect(updated).toHaveLength(1);
+
+    const transactions = await getAllTransactions();
+    expect(transactions.find(t => t.id === 'existing').notes).toBe(
+      'Existing note',
+    );
+    expect(transactions.find(t => t.amount === -2000).notes).toBe(
+      'Hi #just-imported',
+    );
+    expect(transactions.find(t => t.amount === -3000).notes).toBe(
+      '#just-imported',
+    );
+  });
+
   test('reconcile creates payees correctly', async () => {
     const { id } = await prepareDatabase();
 
@@ -610,8 +670,8 @@ describe('Account sync', () => {
     expect(
       (await getAllTransactions()).map(t => [t.date, t.payee_name, t.notes]),
     ).toEqual([
-      [20240405, 'Netflix', null],
-      [20240403, 'Corner Coffee', null],
+      [20240405, 'Netflix', '#just-imported'],
+      [20240403, 'Corner Coffee', '#just-imported'],
     ]);
   });
 
