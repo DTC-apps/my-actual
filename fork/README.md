@@ -10,6 +10,7 @@ with it.
 | -------------------------------------------------- | ---------------------------------------------------------------------------- |
 | [`vps.md`](vps.md)                                 | Running Actual on the VPS: install, update, backups, moving, troubleshooting |
 | [`docker-compose.vps.yml`](docker-compose.vps.yml) | The container settings used on the VPS                                       |
+| [`actual-sync/`](actual-sync/README.md)            | The daily bank sync script (`sync.js`) and how to deploy it                  |
 
 ## Branches
 
@@ -30,6 +31,7 @@ when a change is done and checked, commit it on `custom/main` and push. Nothing 
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Make payment** button | `packages/desktop-client/src/components/accounts/`: `MakePaymentButton.tsx`, `MakePaymentForm.tsx`, `makePayment.ts`, `makePayment.test.ts` (new); `Header.tsx`, `Account.tsx` (a few lines each) |
 | Fork docs               | `fork/` (new)                                                                                                                                                                                     |
+| Daily bank sync script  | `fork/actual-sync/` (new): runs on the VPS, not part of the Actual image                                                                                                                          |
 
 **Make payment:** on an open account with a negative balance (a credit card or loan), the account
 toolbar shows **Make payment**. It opens a form prefilled with the amount owed, a source account

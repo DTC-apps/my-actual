@@ -177,7 +177,7 @@ sudo crontab -u actualsync -l
 ```
 
 ```cron
-0 9 * * * cd $HOME/actual-sync && /usr/bin/node --env-file=.env sync.js >> $HOME/actual-sync/sync.log 2>&1
+0 9 * * * cd $HOME/actual-sync && flock -n $HOME/actual-sync/.sync.lock timeout -k 1m 15m /usr/bin/node --env-file=.env sync.js >> $HOME/actual-sync/sync.log 2>&1
 30 9 * * * cd $HOME/actual-sync/finance-tracker/exporter && node --env-file=$HOME/finance-exporter.env export.js >> $HOME/finance-export.log 2>&1
 ```
 
@@ -188,6 +188,11 @@ The sync project's `.env` has `ACTUAL_SERVER_URL=http://127.0.0.1:5006`, and so 
 sudo -iu actualsync bash -c 'cd ~/actual-sync && /usr/bin/node --env-file=.env sync.js'
 sudo -iu actualsync bash -c 'cd ~/actual-sync/finance-tracker/exporter && node --env-file=$HOME/finance-exporter.env export.js'
 ```
+
+`sync.js` lives in this repo in [`actual-sync/`](actual-sync/README.md), with its deploy steps.
+It tags every transaction it imports with `#just-imported`. Never load either `.env` file with
+bash (`. ./.env`, `set -a`): bash cuts `$` out of double-quoted passwords, and `--env-file` won't
+override a variable bash already set in that shell.
 
 For anything else as `actualsync`, use `sudo -iu actualsync bash -c '…'` (one quoted command) or
 `sudo -u actualsync -H …`. Plain `sudo -iu actualsync COMMAND ARGS` drops empty arguments such
