@@ -231,9 +231,10 @@ Every push to `custom/main` makes GitHub Actions build the image
 (`.github/workflows/docker-fork.yml`) and publish it as `ghcr.io/dtc-apps/actual-server:latest`,
 plus a `sha-…` tag per commit. Using it skips the swap and the 8 GB build on the VPS.
 
-Once, if the package is private (GitHub, the organization's **Packages**, `actual-server`,
-**Package settings**): either make it public, or log in on the VPS with a token that has
-`read:packages`:
+Once, if the package is private: either make it public (the package's page,
+<https://github.com/users/DTC-apps/packages/container/package/actual-server>, then **Package
+settings**, **Change visibility**; all packages are under <https://github.com/DTC-apps?tab=packages>),
+or log in on the VPS with a token that has `read:packages`:
 
 ```sh
 # 🟦
