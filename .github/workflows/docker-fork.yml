@@ -1,0 +1,98 @@
+name: Build Fork Docker Image
+
+# Builds this fork's sync server image on standard GitHub runners and pushes it
+# to ghcr.io/<owner>/actual-server. Upstream's docker-nightly.yml needs Depot
+# runners, which forks don't have, so it is kept separate to avoid conflicts
+# when syncing with upstream.
+#
+# Tags:
+# - <branch name>, e.g. `master` or `claude-relaxed-ritchie-t43yau`
+# - `latest` for the default branch
+# - `sha-<short sha>` for every build
+on:
+  push:
+    branches:
+      - master
+      - claude/relaxed-ritchie-t43yau
+  workflow_dispatch:
+
+concurrency:
+  group: docker-fork-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    if: github.event.repository.fork
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/actual-server
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build the web app outside of Docker once, then reuse it for every
+      # platform (same approach as upstream's docker-nightly.yml).
+      - name: Set up environment
+        uses: ./.github/actions/setup
+        with:
+          cache: 'false'
+
+      - name: Build Web
+        run: yarn build:server
+
+      - name: Build image for testing
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          push: false
+          load: true
+          file: packages/sync-server/docker/ubuntu.Dockerfile
+          tags: actual-server-testing
+
+      - name: Test that the docker image boots
+        timeout-minutes: 1
+        run: |
+          docker run --detach --network=host --name actual-server actual-server-testing
+          HEALTHCMD=$(yq -r '.services.actual_server.healthcheck.test[1]' packages/sync-server/docker-compose.yml)
+          until docker exec actual-server sh -c "$HEALTHCMD"; do sleep 1; done
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker logs actual-server || true
+
+      - name: Build and push images
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          push: true
+          file: packages/sync-server/docker/ubuntu.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
