@@ -1975,6 +1975,7 @@ class AccountInternal extends PureComponent<
                 onCreateReconciliationTransaction={
                   this.onCreateReconciliationTransaction
                 }
+                onMakePayment={this.refetchTransactions}
                 onSync={this.onSync}
                 onImport={this.onImport}
                 onBatchDelete={this.onBatchDelete}

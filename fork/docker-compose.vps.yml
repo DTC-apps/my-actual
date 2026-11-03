@@ -1,0 +1,26 @@
+# Actual on the VPS. Copy to /srv/actual/docker-compose.yml (see fork/vps.md).
+services:
+  actual:
+    image: my-actual:latest
+    container_name: actual
+    restart: unless-stopped
+    ports:
+      # 127.0.0.1 only: Docker bypasses ufw, so a plain '5006:5006' would put
+      # Actual on the internet. Cloudflare reaches it through the tunnel.
+      - '127.0.0.1:5006:5006'
+    volumes:
+      # .migrate, server-files and user-files, owned by uid 1001 (the
+      # container's user).
+      - /srv/actual/data:/data
+    healthcheck:
+      # The image has no scripts/health-check.js, so call /health directly.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:5006/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 60s
+      timeout: 10s
+      retries: 3

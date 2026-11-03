@@ -54,6 +54,7 @@ import { useSyncServerStatus } from '#hooks/useSyncServerStatus';
 import type { TableRef } from './Account';
 import { Balances } from './Balance';
 import { BalanceHistoryGraph } from './BalanceHistoryGraph';
+import { MakePaymentButton } from './MakePaymentButton';
 import { ReconcileMenu, ReconcilingMessage } from './Reconcile';
 
 type AccountHeaderProps = {
@@ -85,6 +86,7 @@ type AccountHeaderProps = {
     typeof SelectedTransactionsButton
   >['onShow'];
   onDoneReconciling: ComponentProps<typeof ReconcilingMessage>['onDone'];
+  onMakePayment: () => void;
   onCreateReconciliationTransaction: ComponentProps<
     typeof ReconcilingMessage
   >['onCreateTransaction'];
@@ -159,6 +161,7 @@ export function AccountHeader({
   onShowTransactions,
   onDoneReconciling,
   onCreateReconciliationTransaction,
+  onMakePayment,
   onToggleExtraBalances,
   onSaveName,
   saveNameError,
@@ -363,6 +366,10 @@ export function AccountHeader({
               />{' '}
               <Trans>Import</Trans>
             </Button>
+          )}
+
+          {account && (
+            <MakePaymentButton account={account} onPaid={onMakePayment} />
           )}
 
           {!showEmptyMessage && (
