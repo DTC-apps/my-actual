@@ -42,13 +42,12 @@ export function ImportedTransactionsTagSettings() {
       htmlFor={INPUT_ID}
       title={t('Tag new imports')}
       description={t(
-        'Add this tag to every new transaction created by bank sync or a file import, so they are easy to find and review. Transactions that match ones already in your budget are left alone. Leave empty to turn this off.',
+        'Add a tag, such as #just-imported, to every new transaction created by bank sync or a file import, so they are easy to find and review. Transactions that match ones already in your budget are left alone. While this is empty, no tag is added.',
       )}
       control={
         <Input
           id={INPUT_ID}
           value={value}
-          placeholder="#just-imported"
           aria-invalid={isInvalid ? 'true' : 'false'}
           aria-describedby={isInvalid ? ERROR_ID : undefined}
           style={{ width: 200 }}
