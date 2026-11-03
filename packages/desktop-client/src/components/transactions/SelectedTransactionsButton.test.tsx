@@ -38,6 +38,7 @@ function renderButton(
         name="transactions"
         items={transactions}
         initialSelectedIds={selectedIds}
+        fetchAllIds={async () => transactions.map(t => t.id)}
       >
         <SelectedTransactionsButton
           getTransaction={id => transactions.find(t => t.id === id)}

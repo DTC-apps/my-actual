@@ -27,17 +27,31 @@ when a change is done and checked, commit it on `custom/main` and push. Nothing 
 
 ## Custom changes
 
-| Change                  | Files                                                                                                                                                                                             |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Make payment** button | `packages/desktop-client/src/components/accounts/`: `MakePaymentButton.tsx`, `MakePaymentForm.tsx`, `makePayment.ts`, `makePayment.test.ts` (new); `Header.tsx`, `Account.tsx` (a few lines each) |
-| Fork docs               | `fork/` (new)                                                                                                                                                                                     |
-| Daily bank sync script  | `fork/actual-sync/` (new): runs on the VPS, not part of the Actual image                                                                                                                          |
+| Change                  | Files                                                                                                                                                                                                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Make payment** button | `packages/desktop-client/src/components/accounts/`: `MakePaymentButton.tsx`, `MakePaymentForm.tsx`, `makePayment.ts`, `makePayment.test.ts` (new); `Header.tsx`, `Account.tsx` (a few lines each)                                                                    |
+| Fork docs               | `fork/` (new)                                                                                                                                                                                                                                                        |
+| Daily bank sync script  | `fork/actual-sync/` (new): runs on the VPS, not part of the Actual image                                                                                                                                                                                             |
+| **Tag new imports**     | `packages/loot-core/src/server/accounts/sync.ts` (adds the tag), `packages/loot-core/src/shared/tags.ts`, `packages/loot-core/src/types/prefs.ts`; `packages/desktop-client/src/components/settings/ImportedTransactionsTagSettings.tsx` (new), `settings/index.tsx` |
+| **To review** filter    | `packages/desktop-client/src/components/filters/FiltersMenu.tsx`, `accounts/Header.tsx` (one prop)                                                                                                                                                                   |
+| **Mark as reviewed**    | `packages/desktop-client/src/components/transactions/SelectedTransactionsButton.tsx`, `hooks/useTransactionBatchActions.ts`, `accounts/Account.tsx`, `accounts/Header.tsx` (a few lines each)                                                                        |
+| GitHub image build      | `.github/workflows/docker-fork.yml` (new): builds `ghcr.io/dtc-apps/actual-server` from `custom/main`                                                                                                                                                                |
 
 **Make payment:** on an open account with a negative balance (a credit card or loan), the account
 toolbar shows **Make payment**. It opens a form prefilled with the amount owed, a source account
 (the first open on-budget account by default) and today's date, and records the payment as a
 normal transfer. Your rules are not run on the payment, so they can't change its payee. Desktop
 and web only; the mobile layout doesn't have it.
+
+**Tag new imports:** in Settings > General > Importing, **Tag new imports** sets a tag (for
+example `#just-imported`) that bank sync and file imports add to the notes of every transaction
+they create. Transactions that match ones already in the budget are left alone, and the tag is
+never added twice. Empty turns it off; it is stored with the budget, so it syncs across devices.
+
+**To review / Mark as reviewed:** with that tag set, the account pages' **Filter** menu offers
+**To review (#tag)**, which shows only the tagged transactions. Select some and choose **Mark as
+reviewed** in the selection menu to remove the tag from their notes (the rest of the notes is
+kept). Desktop and web only.
 
 Custom changes prefer new files over edits to upstream files, and never touch the data schema,
 migrations or sync logic. The fewer upstream lines they change, the fewer conflicts each update

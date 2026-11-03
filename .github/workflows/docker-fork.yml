@@ -1,20 +1,17 @@
 name: Build Fork Docker Image
 
-# Builds this fork's sync server image on standard GitHub runners and pushes it
-# to ghcr.io/<owner>/actual-server. Upstream's docker-nightly.yml needs Depot
-# runners, which forks don't have, so it is kept separate to avoid conflicts
-# when syncing with upstream.
+# Builds this fork's sync server image from custom/main on standard GitHub
+# runners and pushes it to ghcr.io/<owner>/actual-server (see fork/vps.md).
+# Upstream's docker-nightly.yml needs Depot runners, which forks don't have, so
+# this is a separate file to avoid conflicts when merging upstream.
 #
 # Tags:
-# - <branch name>, e.g. `master` or `claude-relaxed-ritchie-t43yau`
-# - `latest` for the default branch
-# - `sha-<short sha>` for every build
+# - `latest`: the newest custom/main build
+# - `sha-<short sha>`: every build, to pin or roll back to a specific one
 on:
   push:
     branches:
-      - master
-      - claude/relaxed-ritchie-t43yau
-  workflow_dispatch:
+      - custom/main
 
 concurrency:
   group: docker-fork-build-${{ github.ref }}
@@ -46,8 +43,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/actual-server
           tags: |
-            type=ref,event=branch
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest
             type=sha
 
       - name: Login to GitHub Container Registry

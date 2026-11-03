@@ -225,6 +225,40 @@ A new version may upgrade the data when it first starts. After that, the old ima
 it, so going back means both the old image **and** the backup from before the update (see
 "Rolling back").
 
+### Alternative: use the image GitHub builds
+
+Every push to `custom/main` makes GitHub Actions build the image
+(`.github/workflows/docker-fork.yml`) and publish it as `ghcr.io/dtc-apps/actual-server:latest`,
+plus a `sha-…` tag per commit. Using it skips the swap and the 8 GB build on the VPS.
+
+Once, if the package is private (GitHub, the organization's **Packages**, `actual-server`,
+**Package settings**): either make it public, or log in on the VPS with a token that has
+`read:packages`:
+
+```sh
+# 🟦
+sudo docker login ghcr.io -u YOUR_GITHUB_USERNAME
+```
+
+Then, once, set the image in `/srv/actual/docker-compose.yml`:
+
+```yaml
+image: ghcr.io/dtc-apps/actual-server:latest
+```
+
+To update, wait for the build of your last `custom/main` push to finish (GitHub, **Actions**,
+"Build Fork Docker Image"), then:
+
+```sh
+# 🟦 keep the running image as a fallback, then pull and restart
+sudo docker tag ghcr.io/dtc-apps/actual-server:latest my-actual:previous
+cd /srv/actual && sudo docker compose pull && sudo docker compose up -d
+sleep 15 && curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5006/health
+```
+
+To roll back with this image, set `image: my-actual:previous` (or a `sha-…` tag) in the compose
+file instead of retagging, then follow "Rolling back an update" from its backup step.
+
 ## Restoring a backup
 
 ```sh
