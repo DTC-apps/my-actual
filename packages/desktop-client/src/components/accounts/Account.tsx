@@ -259,6 +259,9 @@ type AccountInternalProps = {
     typeof useTransactionBatchActions
   >['onBatchUnlinkSchedule'];
   onBatchDelete: ReturnType<typeof useTransactionBatchActions>['onBatchDelete'];
+  onBatchMarkReviewed: ReturnType<
+    typeof useTransactionBatchActions
+  >['onBatchMarkReviewed'];
   categoryId?: string;
   location: ReturnType<typeof useLocation>;
   dateFormat: ReturnType<typeof useDateFormat>;
@@ -1405,6 +1408,13 @@ class AccountInternal extends PureComponent<
     });
   };
 
+  onBatchMarkReviewed = (ids: string[]) => {
+    void this.props.onBatchMarkReviewed({
+      ids,
+      onSuccess: this.refetchTransactions,
+    });
+  };
+
   onCreateRule = async (ids: string[]) => {
     const { data } = await aqlQuery(
       q('transactions')
@@ -1973,6 +1983,7 @@ class AccountInternal extends PureComponent<
                 onBatchEdit={this.onBatchEdit}
                 onBatchLinkSchedule={this.onBatchLinkSchedule}
                 onBatchUnlinkSchedule={this.onBatchUnlinkSchedule}
+                onBatchMarkReviewed={this.onBatchMarkReviewed}
                 onCreateRule={this.onCreateRule}
                 onUpdateFilter={this.onUpdateFilter}
                 onClearFilters={this.onClearFilters}
@@ -2085,6 +2096,7 @@ type AccountHackProps = Omit<
   | 'onBatchLinkSchedule'
   | 'onBatchUnlinkSchedule'
   | 'onBatchDelete'
+  | 'onBatchMarkReviewed'
   | 'onSetTransfer'
 >;
 
@@ -2097,6 +2109,7 @@ function AccountHack(props: AccountHackProps) {
     onBatchLinkSchedule,
     onBatchUnlinkSchedule,
     onBatchDelete,
+    onBatchMarkReviewed,
     onSetTransfer,
   } = useTransactionBatchActions();
 
@@ -2109,6 +2122,7 @@ function AccountHack(props: AccountHackProps) {
       onBatchLinkSchedule={onBatchLinkSchedule}
       onBatchUnlinkSchedule={onBatchUnlinkSchedule}
       onBatchDelete={onBatchDelete}
+      onBatchMarkReviewed={onBatchMarkReviewed}
       onSetTransfer={onSetTransfer}
       {...props}
     />

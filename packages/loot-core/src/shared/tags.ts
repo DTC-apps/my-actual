@@ -44,6 +44,25 @@ export function normalizeTagName(
   return name;
 }
 
+// Removes every `#tag` (and the space before it) from the notes. Escaped
+// `##tag` and longer tags such as `#tag-old` are kept, and the rest of the
+// notes is left as it was. Returns null when nothing else remains, matching how
+// empty notes are stored.
+export function removeTagFromNotes(
+  notes: string | null | undefined,
+  tag: string,
+): string | null {
+  if (!notes) return notes ?? null;
+
+  const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`[ \\t]*(?<!#)#${escaped}(?=[\\s#]|$)`, 'g');
+  const removed = notes.replace(pattern, '');
+  if (removed === notes) return notes;
+
+  const cleaned = removed.trim();
+  return cleaned === '' ? null : cleaned;
+}
+
 export function extractTagsFromText(value: string): string[] {
   if (!value) return [];
 

@@ -109,6 +109,9 @@ type AccountHeaderProps = {
   onBatchUnlinkSchedule: ComponentProps<
     typeof SelectedTransactionsButton
   >['onUnlinkSchedule'];
+  onBatchMarkReviewed: ComponentProps<
+    typeof SelectedTransactionsButton
+  >['onMarkReviewed'];
   onApplyFilter: (filter: RuleConditionEntity) => void;
 } & Pick<
   ComponentProps<typeof SelectedTransactionsButton>,
@@ -168,6 +171,7 @@ export function AccountHeader({
   onBatchEdit,
   onBatchLinkSchedule,
   onBatchUnlinkSchedule,
+  onBatchMarkReviewed,
   onCreateRule,
   onApplyFilter,
   onUpdateFilter,
@@ -393,6 +397,7 @@ export function AccountHeader({
               onRunRules={onRunRules}
               onLinkSchedule={onBatchLinkSchedule}
               onUnlinkSchedule={onBatchUnlinkSchedule}
+              onMarkReviewed={onBatchMarkReviewed}
               onCreateRule={onCreateRule}
               onSetTransfer={onSetTransfer}
               onScheduleAction={onScheduleAction}

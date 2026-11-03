@@ -9,6 +9,10 @@ import {
   extractScheduleConds,
   scheduleIsRecurring,
 } from '@actual-app/core/shared/schedules';
+import {
+  extractTagsFromText,
+  normalizeTagName,
+} from '@actual-app/core/shared/tags';
 import { isPreviewId } from '@actual-app/core/shared/transactions';
 import { validForTransfer } from '@actual-app/core/shared/transfer';
 import type { TransactionEntity } from '@actual-app/core/types/models';
@@ -16,6 +20,7 @@ import type { TransactionEntity } from '@actual-app/core/types/models';
 import { SelectedItemsButton } from '#components/table';
 import { useSchedules } from '#hooks/useSchedules';
 import { useSelectedItems } from '#hooks/useSelected';
+import { useSyncedPref } from '#hooks/useSyncedPref';
 import { pushModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
 
@@ -48,6 +53,11 @@ type SelectedTransactionsButtonProps = {
   onMakeAsSplitTransaction: (selectedIds: string[]) => void;
   onMakeAsNonSplitTransactions: (selectedIds: string[]) => void;
   onMergeTransactions: (selectedIds: string[]) => void;
+  /**
+   * Removes the "new imports" tag (Settings > Importing) from the selected
+   * transactions. The menu item is hidden when this is missing or no tag is set.
+   */
+  onMarkReviewed?: (selectedIds: string[]) => void;
 };
 
 export function SelectedTransactionsButton({
@@ -66,11 +76,21 @@ export function SelectedTransactionsButton({
   onMakeAsSplitTransaction,
   onMakeAsNonSplitTransactions,
   onMergeTransactions,
+  onMarkReviewed,
 }: SelectedTransactionsButtonProps) {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const selectedItems = useSelectedItems();
   const selectedIds = useMemo(() => [...selectedItems], [selectedItems]);
+  const [importedTransactionsTag] = useSyncedPref('imported-transactions-tag');
+  const reviewTag = onMarkReviewed
+    ? normalizeTagName(importedTransactionsTag)
+    : null;
+  const hasReviewTag =
+    reviewTag != null &&
+    selectedIds.some(id =>
+      extractTagsFromText(getTransaction(id)?.notes ?? '').includes(reviewTag),
+    );
 
   const scheduleIds = useMemo(() => {
     return selectedIds
@@ -332,6 +352,18 @@ export function SelectedTransactionsButton({
                 disabled: ambiguousDuplication,
               } as const,
               { name: 'delete', text: t('Delete'), key: 'D' } as const,
+              ...(reviewTag
+                ? [
+                    {
+                      name: 'mark-reviewed',
+                      text: t('Mark as reviewed'),
+                      tooltip: t('Remove #{{tag}} from the notes', {
+                        tag: reviewTag,
+                      }),
+                      disabled: !hasReviewTag,
+                    } as const,
+                  ]
+                : []),
               ...(linked
                 ? [
                     {
@@ -428,6 +460,9 @@ export function SelectedTransactionsButton({
             break;
           case 'merge-transactions':
             onMergeTransactions(selectedIds);
+            break;
+          case 'mark-reviewed':
+            onMarkReviewed?.(selectedIds);
             break;
           case 'post-transaction':
           case 'post-transaction-today':

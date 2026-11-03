@@ -4,6 +4,10 @@ import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
 import { q } from '@actual-app/core/shared/query';
 import {
+  normalizeTagName,
+  removeTagFromNotes,
+} from '@actual-app/core/shared/tags';
+import {
   deleteTransaction,
   realizeTempTransactions,
   ungroupTransaction,
@@ -20,6 +24,7 @@ import type {
   TransactionEntity,
 } from '@actual-app/core/types/models';
 
+import { useSyncedPref } from '#hooks/useSyncedPref';
 import { pushModal } from '#modals/modalsSlice';
 import type {
   ConfirmTransactionEditReason,
@@ -75,9 +80,15 @@ type BatchUnlinkScheduleProps = {
   onSuccess?: (ids: Array<TransactionEntity['id']>) => void;
 };
 
+type BatchMarkReviewedProps = {
+  ids: Array<TransactionEntity['id']>;
+  onSuccess?: (ids: Array<TransactionEntity['id']>) => void;
+};
+
 export function useTransactionBatchActions() {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const [importedTransactionsTag] = useSyncedPref('imported-transactions-tag');
 
   const onBatchEdit = async ({ name, ids, onSuccess }: BatchEditProps) => {
     const { data } = await aqlQuery(
@@ -440,6 +451,46 @@ export function useTransactionBatchActions() {
     onSuccess?.(ids);
   };
 
+  // Removes the "new imports" tag (set in Settings > Importing) from the notes
+  // of the given transactions, so they drop out of the "To review" filter.
+  const onBatchMarkReviewed = async ({
+    ids,
+    onSuccess,
+  }: BatchMarkReviewedProps) => {
+    const tag = normalizeTagName(importedTransactionsTag);
+    if (!tag || ids.length === 0) {
+      return;
+    }
+
+    const { data: transactions } = await aqlQuery(
+      q('transactions')
+        .filter({ id: { $oneof: ids } })
+        .select(['id', 'notes'])
+        .options({ splits: 'all' }),
+    );
+
+    const rows: Array<Pick<TransactionEntity, 'id' | 'notes'>> = transactions;
+    const changes: Array<{
+      id: TransactionEntity['id'];
+      notes: string | null;
+    }> = [];
+    for (const { id, notes } of rows) {
+      const reviewedNotes = removeTagFromNotes(notes, tag);
+      if (reviewedNotes !== notes) {
+        changes.push({ id, notes: reviewedNotes });
+      }
+    }
+
+    if (changes.length > 0) {
+      await send('transactions-batch-update', {
+        // `null` clears the notes; the entity type doesn't allow it yet (see
+        // onBatchUnlinkSchedule above).
+        updated: changes as unknown as Array<Partial<TransactionEntity>>,
+      });
+    }
+    onSuccess?.(changes.map(({ id }) => id));
+  };
+
   const transferReasonMap: Record<
     BatchReconciledReason,
     ConfirmTransactionEditReason
@@ -601,6 +652,7 @@ export function useTransactionBatchActions() {
     onBatchDelete,
     onBatchLinkSchedule,
     onBatchUnlinkSchedule,
+    onBatchMarkReviewed,
     onSetTransfer,
     onMerge,
   };
