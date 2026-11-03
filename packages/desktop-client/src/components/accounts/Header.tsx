@@ -369,7 +369,7 @@ export function AccountHeader({
           )}
           <View style={{ flexShrink: 0 }}>
             {/* @ts-expect-error fix me */}
-            <FilterButton onApply={onApplyFilter} />
+            <FilterButton onApply={onApplyFilter} showReviewImportsFilter />
           </View>
           <View style={{ flex: 1 }} />
 

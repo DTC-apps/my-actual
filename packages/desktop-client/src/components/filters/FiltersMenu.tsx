@@ -24,6 +24,7 @@ import {
   getValidOps,
   unparse,
 } from '@actual-app/core/shared/rules';
+import { normalizeTagName } from '@actual-app/core/shared/tags';
 import { titleFirst } from '@actual-app/core/shared/util';
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type { RuleConditionEntity } from '@actual-app/core/types/models';
@@ -41,6 +42,7 @@ import { useCategories } from '#hooks/useCategories';
 import { useDateFormat } from '#hooks/useDateFormat';
 import { useFormat } from '#hooks/useFormat';
 import { usePayees } from '#hooks/usePayees';
+import { useSyncedPref } from '#hooks/useSyncedPref';
 import { useTransactionFilters } from '#hooks/useTransactionFilters';
 import { mapField } from '#util/rule';
 
@@ -67,6 +69,10 @@ type AmountInputRef = HTMLInputElement & {
 let isDatepickerClick = false;
 
 const PARSE_REFERENCE_DATE = new Date(0);
+
+// Menu item that filters to transactions carrying the "new imports" tag set in
+// Settings. Prefixed so it can't clash with a filter field name.
+const REVIEW_IMPORTS_ITEM = '__review-imports';
 
 const filterFields = [
   'date',
@@ -577,6 +583,11 @@ type FilterButtonProps<T extends RuleConditionEntity> = {
   exclude?: string[];
   /** If both are provided, `include` acts as the allowlist before `exclude` is applied. */
   include?: string[];
+  /**
+   * Offer a one-click filter for transactions tagged by imports (the tag set
+   * in Settings > Importing). Hidden while no tag is set.
+   */
+  showReviewImportsFilter?: boolean;
 };
 
 /**
@@ -606,9 +617,14 @@ export function FilterButton<T extends RuleConditionEntity>({
   hover,
   exclude,
   include,
+  showReviewImportsFilter = false,
 }: FilterButtonProps<T>) {
   const { t } = useTranslation();
   const filters = useTransactionFilters();
+  const [importedTransactionsTag] = useSyncedPref('imported-transactions-tag');
+  const reviewImportsTag = showReviewImportsFilter
+    ? normalizeTagName(importedTransactionsTag)
+    : null;
   const triggerRef = useRef<HTMLDivElement>(null);
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
 
@@ -718,11 +734,25 @@ export function FilterButton<T extends RuleConditionEntity>({
     .filter(([field]) => shouldShowFilterField(field, include, exclude))
     .sort((a, b) => a[0].localeCompare(b[0]));
 
-  const filterMenuItems: ComponentProps<typeof Menu>['items'] =
-    visibleFilterFields.map(([name, text]) => ({
+  const filterMenuItems: ComponentProps<typeof Menu>['items'] = [];
+
+  if (reviewImportsTag) {
+    filterMenuItems.push(
+      {
+        name: REVIEW_IMPORTS_ITEM,
+        text: t('To review (#{{tag}})', { tag: reviewImportsTag }),
+        tooltip: t('New imported transactions that still have the tag'),
+      },
+      Menu.line,
+    );
+  }
+
+  filterMenuItems.push(
+    ...visibleFilterFields.map(([name, text]) => ({
       name,
       text: titleFirst(text),
-    }));
+    })),
+  );
 
   if (shouldShowFilterField('saved', include, exclude)) {
     filterMenuItems.push(Menu.line);
@@ -770,6 +800,17 @@ export function FilterButton<T extends RuleConditionEntity>({
       >
         <Menu
           onMenuSelect={name => {
+            if (name === REVIEW_IMPORTS_ITEM && reviewImportsTag) {
+              dispatch({ type: 'close' });
+              const cond = {
+                field: 'notes',
+                op: 'hasTags',
+                value: `#${reviewImportsTag}`,
+                type: 'string',
+              } satisfies RuleConditionEntity;
+              onApply(cond as T);
+              return;
+            }
             dispatch({ type: 'configure', field: name as string });
           }}
           items={filterMenuItems}
