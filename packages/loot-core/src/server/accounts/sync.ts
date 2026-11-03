@@ -20,7 +20,7 @@ import {
 } from '#server/util/custom-sync-mapping';
 import * as monthUtils from '#shared/months';
 import { q } from '#shared/query';
-import { extractTagsFromText } from '#shared/tags';
+import { extractTagsFromText, normalizeTagName } from '#shared/tags';
 import {
   makeChild as makeChildTransaction,
   recalculateSplit,
@@ -35,6 +35,7 @@ import type {
   BankSyncResponse,
   TransactionEntity,
 } from '#types/models';
+import type { SyncedPrefs } from '#types/prefs';
 
 import { getStartingBalancePayee } from './payees';
 import { title } from './title';
@@ -637,18 +638,29 @@ export type ReconcileTransactionsResult = {
   }>;
 };
 
-// Every transaction newly created by an import (bank sync or file import)
-// gets this tag, so freshly imported transactions are easy to find and review.
-export const JUST_IMPORTED_TAG = 'just-imported';
-
-export function addJustImportedTag(notes: string | null | undefined): string {
+// Appends `#tag` to the notes, unless the notes already carry that tag.
+export function addTagToNotes(
+  notes: string | null | undefined,
+  tag: string,
+): string {
   const existing = notes?.trimEnd() ?? '';
-  if (extractTagsFromText(existing).includes(JUST_IMPORTED_TAG)) {
+  if (extractTagsFromText(existing).includes(tag)) {
     return existing;
   }
-  return existing.trim()
-    ? `${existing} #${JUST_IMPORTED_TAG}`
-    : `#${JUST_IMPORTED_TAG}`;
+  return existing.trim() ? `${existing} #${tag}` : `#${tag}`;
+}
+
+// The tag to add to transactions newly created by an import (bank sync or
+// file import), or null when the budget doesn't tag them.
+async function getImportedTransactionsTag(): Promise<string | null> {
+  const value = await aqlQuery(
+    q('preferences')
+      .filter({
+        id: 'imported-transactions-tag' satisfies keyof SyncedPrefs,
+      })
+      .select('value'),
+  ).then(data => data?.data?.[0]?.value);
+  return normalizeTagName(value);
 }
 
 export async function reconcileTransactions(
@@ -670,6 +682,7 @@ export async function reconcileTransactions(
   const added = [];
   const updatedPreview = [];
   const existingPayeeMap = new Map<string, string>();
+  const importedTag = await getImportedTransactionsTag();
 
   const {
     payeesToCreate,
@@ -783,7 +796,11 @@ export async function reconcileTransactions(
         id: uuidv4(),
         category: trans.category || null,
         cleared: trans.cleared ?? defaultCleared,
-        notes: addJustImportedTag(newTrans.notes),
+        // Only transactions created here are tagged; ones matched to an
+        // existing transaction above are left as they are.
+        notes: importedTag
+          ? addTagToNotes(newTrans.notes, importedTag)
+          : newTrans.notes,
       };
 
       if (subtransactions && subtransactions.length > 0) {

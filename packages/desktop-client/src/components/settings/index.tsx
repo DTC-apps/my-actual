@@ -35,6 +35,7 @@ import { EncryptionSettings } from './Encryption';
 import { ExperimentalFeatures } from './Experimental';
 import { ExportBudget } from './Export';
 import { FormatSettings } from './Format';
+import { ImportedTransactionsTagSettings } from './ImportedTransactionsTagSettings';
 import { LanguageSettings } from './LanguageSettings';
 import { RepairTransactions } from './RepairTransactions';
 import { ResetCache, ResetSync } from './Reset';
@@ -282,6 +283,9 @@ export function GeneralSettings() {
       <LanguageSettings />
       <SettingsGroup title={t('Budget')}>
         <BudgetTypeSettings />
+      </SettingsGroup>
+      <SettingsGroup title={t('Importing')}>
+        <ImportedTransactionsTagSettings />
       </SettingsGroup>
       {serverURL && (
         <SettingsGroup title={t('Security')}>

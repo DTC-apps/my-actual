@@ -15,7 +15,7 @@ import type { SyncedPrefs } from '#types/prefs';
 
 import { app as accountsApp } from './app';
 import {
-  addJustImportedTag,
+  addTagToNotes,
   addTransactions,
   compareFuzzyMatchCandidates,
   reconcileTransactions,
@@ -83,36 +83,51 @@ async function getAllPayees() {
   return (await db.getPayees()).filter(p => p.transfer_acct == null);
 }
 
-describe('addJustImportedTag', () => {
+const IMPORTED_TAG_PREF =
+  'imported-transactions-tag' satisfies keyof SyncedPrefs;
+
+describe('addTagToNotes', () => {
   test('tags empty notes', () => {
-    expect(addJustImportedTag(null)).toBe('#just-imported');
-    expect(addJustImportedTag(undefined)).toBe('#just-imported');
-    expect(addJustImportedTag('  ')).toBe('#just-imported');
+    expect(addTagToNotes(null, 'new')).toBe('#new');
+    expect(addTagToNotes(undefined, 'new')).toBe('#new');
+    expect(addTagToNotes('  ', 'new')).toBe('#new');
   });
 
   test('appends the tag to existing notes', () => {
-    expect(addJustImportedTag('Groceries ')).toBe('Groceries #just-imported');
+    expect(addTagToNotes('Groceries ', 'new')).toBe('Groceries #new');
   });
 
   test('does not add the tag twice', () => {
-    expect(addJustImportedTag('Groceries #just-imported')).toBe(
-      'Groceries #just-imported',
-    );
+    expect(addTagToNotes('Groceries #new', 'new')).toBe('Groceries #new');
   });
 
   test('ignores escaped or similar tags', () => {
-    expect(addJustImportedTag('##just-imported')).toBe(
-      '##just-imported #just-imported',
-    );
-    expect(addJustImportedTag('#just-imported-old')).toBe(
-      '#just-imported-old #just-imported',
-    );
+    expect(addTagToNotes('##new', 'new')).toBe('##new #new');
+    expect(addTagToNotes('#new-old', 'new')).toBe('#new-old #new');
   });
 });
 
 describe('Account sync', () => {
-  test('reconcile tags only newly added transactions as just imported', async () => {
+  test('reconcile does not tag new transactions by default', async () => {
     const { id } = await prepareDatabase();
+
+    await reconcileTransactions(id, [
+      { date: '2020-01-03', payee_name: 'New', amount: -2000, notes: 'Hi' },
+      { date: '2020-01-04', payee_name: 'Empty', amount: -3000 },
+    ]);
+
+    const transactions = await getAllTransactions();
+    expect(transactions.map(t => t.notes)).toEqual(
+      expect.arrayContaining([null, 'Hi']),
+    );
+  });
+
+  test('reconcile tags only newly added transactions with the budget tag', async () => {
+    const { id } = await prepareDatabase();
+    await db.update('preferences', {
+      id: IMPORTED_TAG_PREF,
+      value: '#just-imported',
+    });
 
     await db.insertTransaction({
       id: 'existing',
@@ -145,6 +160,10 @@ describe('Account sync', () => {
 
   test('reconcile does not tag transactions that already exist', async () => {
     const { id } = await prepareDatabase();
+    await db.update('preferences', {
+      id: IMPORTED_TAG_PREF,
+      value: 'just-imported',
+    });
 
     // Already in the budget, without notes
     await db.insertTransaction({
@@ -183,6 +202,21 @@ describe('Account sync', () => {
     expect(transactions.find(t => t.amount === -2000).notes).toBe(
       '#just-imported',
     );
+  });
+
+  test('reconcile ignores an invalid budget tag', async () => {
+    const { id } = await prepareDatabase();
+    await db.update('preferences', {
+      id: IMPORTED_TAG_PREF,
+      value: 'two words',
+    });
+
+    await reconcileTransactions(id, [
+      { date: '2020-01-04', payee_name: 'Empty', amount: -3000 },
+    ]);
+
+    const transactions = await getAllTransactions();
+    expect(transactions[0].notes).toBeNull();
   });
 
   test('reconcile creates payees correctly', async () => {
@@ -712,8 +746,8 @@ describe('Account sync', () => {
     expect(
       (await getAllTransactions()).map(t => [t.date, t.payee_name, t.notes]),
     ).toEqual([
-      [20240405, 'Netflix', '#just-imported'],
-      [20240403, 'Corner Coffee', '#just-imported'],
+      [20240405, 'Netflix', null],
+      [20240403, 'Corner Coffee', null],
     ]);
   });
 

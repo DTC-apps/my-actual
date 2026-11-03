@@ -31,6 +31,19 @@ export function renameTagInNotes(
   return notes.replace(pattern, () => `#${newTag}`);
 }
 
+// Turns user input like "#just-imported" into a bare tag name. Returns null
+// when nothing usable is left or when the input can't be a single tag (tags end
+// at whitespace or another '#', see `extractTagsFromText`).
+export function normalizeTagName(
+  value: string | null | undefined,
+): string | null {
+  const name = (value ?? '').trim().replace(/^#+/, '');
+  if (name === '' || /[\s#]/.test(name)) {
+    return null;
+  }
+  return name;
+}
+
 export function extractTagsFromText(value: string): string[] {
   if (!value) return [];
 

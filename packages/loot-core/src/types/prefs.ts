@@ -48,6 +48,9 @@ export type SyncedPrefs = Partial<
     // Number of minutes between automatic bank syncs. '0' (or unset) disables
     // automatic syncing.
     | 'bank-sync-interval'
+    // Tag (without '#') added to the notes of every transaction that bank sync
+    // or a file import creates. Empty (or unset) adds no tag.
+    | 'imported-transactions-tag'
     // TODO: pull from src/components/modals/ImportTransactions.js
     | `parse-date-${string}-${'csv' | 'qif'}`
     | `import-reimport-deleted-${string}`
