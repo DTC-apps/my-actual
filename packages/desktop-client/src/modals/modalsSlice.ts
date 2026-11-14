@@ -381,6 +381,12 @@ export type Modal =
       };
     }
   | {
+      name: 'reconcile-synced-balances';
+      options: {
+        onReconciled?: () => void;
+      };
+    }
+  | {
       name: 'category-menu';
       options: {
         categoryId: CategoryEntity['id'];

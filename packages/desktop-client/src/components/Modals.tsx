@@ -73,6 +73,7 @@ import { OutOfSyncMigrationsModal } from './modals/OutOfSyncMigrationsModal';
 import { PasswordEnableModal } from './modals/PasswordEnableModal';
 import { PayeeAutocompleteModal } from './modals/PayeeAutocompleteModal';
 import { PluggyAiInitialiseModal } from './modals/PluggyAiInitialiseModal';
+import { ReconcileSyncedBalancesModal } from './modals/ReconcileSyncedBalancesModal';
 import { ScheduledTransactionMenuModal } from './modals/ScheduledTransactionMenuModal';
 import { SelectLinkedAccountsModal } from './modals/SelectLinkedAccountsModal';
 import { SimpleFinInitialiseModal } from './modals/SimpleFinInitialiseModal';
@@ -291,6 +292,9 @@ export function Modals() {
 
         case 'account-reconcile':
           return <AccountReconcileModal key={key} {...modal.options} />;
+
+        case 'reconcile-synced-balances':
+          return <ReconcileSyncedBalancesModal key={key} {...modal.options} />;
 
         case 'category-menu':
           return <CategoryMenuModal key={key} {...modal.options} />;

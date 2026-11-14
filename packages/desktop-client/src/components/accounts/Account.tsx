@@ -1153,6 +1153,19 @@ class AccountInternal extends PureComponent<
     await this.refetchTransactions();
   };
 
+  onReconcileSyncedBalances = () => {
+    this.props.dispatch(
+      pushModal({
+        modal: {
+          name: 'reconcile-synced-balances',
+          options: {
+            onReconciled: () => void this.refetchTransactions(),
+          },
+        },
+      }),
+    );
+  };
+
   onReconcile = async (amount: number | null) => {
     this.setState(({ showCleared }) => ({
       reconcileAmount: amount,
@@ -1971,6 +1984,7 @@ class AccountInternal extends PureComponent<
                 onSaveName={this.onSaveName}
                 saveNameError={this.state.nameError}
                 onReconcile={this.onReconcile}
+                onReconcileSyncedBalances={this.onReconcileSyncedBalances}
                 onDoneReconciling={this.onDoneReconciling}
                 onCreateReconciliationTransaction={
                   this.onCreateReconciliationTransaction
