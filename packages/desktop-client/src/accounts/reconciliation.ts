@@ -122,3 +122,50 @@ export async function createReconciliationTransaction(
     deleted: ruledTransactions.filter(trans => trans.tombstone),
   });
 }
+
+export type SyncedAccount = AccountEntity & { balance_current: number };
+
+export type SyncedBalanceAdjustment = {
+  account: SyncedAccount;
+  clearedBalance: number;
+  adjustment: number;
+};
+
+export function hasSyncedBalance(
+  account: AccountEntity,
+): account is SyncedAccount {
+  return !account.closed && account.balance_current != null;
+}
+
+// Lists the accounts whose cleared balance differs from the balance last
+// reported by bank sync, along with the adjustment needed to match it.
+export async function getSyncedBalanceAdjustments(
+  accounts: AccountEntity[],
+): Promise<SyncedBalanceAdjustment[]> {
+  const adjustments = await Promise.all(
+    accounts.filter(hasSyncedBalance).map(async account => {
+      const clearedBalance = await getClearedBalance(account.id);
+      return {
+        account,
+        clearedBalance,
+        adjustment: account.balance_current - clearedBalance,
+      };
+    }),
+  );
+
+  return adjustments.filter(({ adjustment }) => adjustment !== 0);
+}
+
+// Reconciles an account against the balance last reported by bank sync:
+// adds a reconciliation transaction for any difference, then locks all
+// cleared transactions.
+export async function reconcileToSyncedBalance(account: SyncedAccount) {
+  const clearedBalance = await getClearedBalance(account.id);
+  const adjustment = account.balance_current - clearedBalance;
+
+  if (adjustment !== 0) {
+    await createReconciliationTransaction(account.id, adjustment);
+  }
+
+  await lockTransactions(account.id);
+}

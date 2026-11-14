@@ -35,6 +35,7 @@ import type {
 } from '@actual-app/core/types/models';
 import { format as formatDate } from 'date-fns';
 
+import { hasSyncedBalance } from '#accounts/reconciliation';
 import { isAccountFailedSync } from '#accounts/syncStatus';
 import { AnimatedRefresh } from '#components/AnimatedRefresh';
 import { Search } from '#components/common/Search';
@@ -97,6 +98,7 @@ type AccountHeaderProps = {
   onImport: () => void;
   onMenuSelect: AccountMenuProps['onMenuSelect'];
   onReconcile: ComponentProps<typeof ReconcileMenu>['onReconcile'];
+  onReconcileSyncedBalances: () => void;
   onBatchEdit: ComponentProps<typeof SelectedTransactionsButton>['onEdit'];
   onRunRules: ComponentProps<typeof SelectedTransactionsButton>['onRunRules'];
   onBatchDelete: ComponentProps<typeof SelectedTransactionsButton>['onDelete'];
@@ -163,6 +165,7 @@ export function AccountHeader({
   onImport,
   onMenuSelect,
   onReconcile,
+  onReconcileSyncedBalances,
   onBatchDelete,
   onBatchDuplicate,
   onBatchEdit,
@@ -205,6 +208,10 @@ export function AccountHeader({
     // All accounts - check for any syncable account
     canSync = !!accounts.find(account => !!account.account_id) && isUsingServer;
   }
+
+  const canReconcileSyncedBalances =
+    accountId === 'offbudget' &&
+    accounts.some(account => !!account.offbudget && hasSyncedBalance(account));
 
   // Only show the ability to make linked transfers on multi-account views.
   const showMakeTransfer = !account;
@@ -347,6 +354,17 @@ export function AccountHeader({
                 }
               />{' '}
               {isServerOffline ? t('Bank Sync Offline') : t('Bank Sync')}
+            </Button>
+          )}
+
+          {canReconcileSyncedBalances && (
+            <Button variant="bare" onPress={onReconcileSyncedBalances}>
+              <SvgLockClosed
+                width={13}
+                height={13}
+                style={{ marginRight: 4 }}
+              />{' '}
+              <Trans>Reconcile to synced balances</Trans>
             </Button>
           )}
 
